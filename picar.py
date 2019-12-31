@@ -46,7 +46,6 @@ cap = cv2.VideoCapture(0)
     
 if cap.isOpened() == False:
     print("Cannot open camera")
-    return
     
 direction = Direction.forward
 drive = driveMode.manual
@@ -54,8 +53,21 @@ drive = driveMode.manual
 while True:
     data = client_socket.recv(1024)
     print (data)
-    if (data == b'w'):
-        if frontRight.dutyCycle < 100 and frontLeft.dutyCycle < 100 and drive = driveMode.manual:
+    
+    if (data == b'exit'):
+        GPIO.cleanup()
+        cv2.destroyAllWindows()
+        break
+    
+    elif (data == b'stop'):
+        frontRight.dutyCycle = 0
+        frontLeft.dutyCycle = 0
+        p.ChangeDutyCycle(frontRight.dutyCycle)
+        r.ChangeDutyCycle(frontLeft.dutyCycle)
+        drive = driveMode.manual
+    
+    elif (data == b'w'):
+        if frontRight.dutyCycle < 100 and frontLeft.dutyCycle < 100 and drive == driveMode.manual:
             frontRight.dutyCycle += 10
             frontLeft.dutyCycle += 10
             p.ChangeDutyCycle(frontRight.dutyCycle)
@@ -64,7 +76,7 @@ while True:
             print("Front left:" + str(frontLeft.dutyCycle))
 
     elif (data == b's'):
-        if frontRight.dutyCycle > 0 and frontLeft.dutyCycle > 0 and drive = driveMode.manual:
+        if frontRight.dutyCycle > 0 and frontLeft.dutyCycle > 0 and drive == driveMode.manual:
             frontRight.dutyCycle -= 10
             frontLeft.dutyCycle -= 10
             p.ChangeDutyCycle(frontRight.dutyCycle)
@@ -73,7 +85,7 @@ while True:
             print("Front left:" + str(frontLeft.dutyCycle))
         
     elif (data == b'd'):
-        if frontRight.dutyCycle > 0 and frontLeft.dutyCycle < 100 and drive = driveMode.manual:
+        if frontRight.dutyCycle > 0 and frontLeft.dutyCycle < 100 and drive == driveMode.manual:
             frontRight.dutyCycle -= 5
             frontLeft.dutyCycle += 5
             p.ChangeDutyCycle(frontRight.dutyCycle)
@@ -82,7 +94,7 @@ while True:
             print("Front left:" + str(frontLeft.dutyCycle))
 
     elif (data == b'a'):
-        if frontRight.dutyCycle < 100 and frontLeft.dutyCycle > 0 and drive = driveMode.manual:
+        if frontRight.dutyCycle < 100 and frontLeft.dutyCycle > 0 and drive == driveMode.manual:
             frontRight.dutyCycle += 5
             frontLeft.dutyCycle -= 5
             p.ChangeDutyCycle(frontRight.dutyCycle)
@@ -100,15 +112,17 @@ while True:
         channels = frame.shape[2]
         first_black_pixel = -1
         last_black_pixel = -1
-        for x in range(width):
-            if frame.item(x, height / 2) == [0, 0]:
-                first_black_pixel = x
-        for x in range(width):
-            if frame.item(width - x, height / 2) == [0, 0]:
-                last_black_pixel = x
+        middleB = frame.item(int(width / 2), int(height / 2), 0)
+        print(middleB)
+        #for x in range(width):
+            #if frame.item(x, height / 2) == [0, 0]:
+                #first_black_pixel = x
+        #for x in range(width):
+            #if frame.item(width - x, height / 2) == [0, 0]:
+                #last_black_pixel = x
         if first_black_pixel == -1 or last_black_pixel == -1 or first_black_pixel > last_black_pixel:
             print("No line found")
-            return
+            continue
         line_middle = (first_black_pixel + last_black_pixel) / 2
         if line_middle < (width / 2):
             frontLeft.dutyCycle += 1
@@ -120,18 +134,6 @@ while True:
             p.ChangeDutyCycle(frontRight.dutyCycle)
             print("Front right:" + str(frontRight.dutyCycle))
             print("Front left:" + str(frontLeft.dutyCycle))
-
-    elif (data == b'stop'):
-        frontRight.dutyCycle = 0
-        frontLeft.dutyCycle = 0
-        p.ChangeDutyCycle(frontRight.dutyCycle)
-        r.ChangeDutyCycle(frontLeft.dutyCycle)
-        drive = driveMode.manual
-        
-    elif (data == b'exit'):
-        GPIO.cleanup()
-        cv2.destroyAllWindows()
-        break
  
 client_socket.close()
 server_socket.close()
