@@ -3,38 +3,16 @@ import time
 import bluetooth
 import cv2
 import enum
+import numpy as np
 from wheels import Wheel
 
 class Direction(enum.Enum):
     forward = 1
-    backward = 0
-
-def forward():
-    GPIO.setmode(GPIO.BOARD)
-    GPIO.setup(front_right_forward, GPIO.OUT)
-    GPIO.setup(front_left_forward, GPIO.OUT)
-    GPIO.output(front_right_forward, GPIO.HIGH)
-    GPIO.output(front_left_forward, GPIO.HIGH)
+    backward = 2
     
-def backward():
-    GPIO.setmode(GPIO.BOARD)
-    GPIO.setup(front_right_backward, GPIO.OUT)
-    GPIO.setup(front_left_backward, GPIO.OUT)
-    GPIO.output(front_right_backward, GPIO.HIGH)
-    GPIO.output(front_left_backward, GPIO.HIGH)
-    
-def camera():
-    cap = cv2.VideoCapture(0)
-    
-    if cap.isOpened() == False:
-        print("Cannot open camera")
-        return
-    
-    while(cv2.waitKey(16) != 27):
-        ret, frame = cap.read()
-        cv2.imshow("webcam", frame)
-    
-    cv2.destroyAllWindows()
+class driveMode(enum.Enum):
+    manual = 1
+    autonomous = 2
 
 #Establishing bluetooth connection
 server_socket = bluetooth.BluetoothSocket(bluetooth.RFCOMM)
@@ -63,13 +41,21 @@ q.start(0)
 r.start(0)
 s.start(0)
 
-
+#Opening camera
+cap = cv2.VideoCapture(0)
+    
+if cap.isOpened() == False:
+    print("Cannot open camera")
+    return
+    
 direction = Direction.forward
+drive = driveMode.manual
+
 while True:
     data = client_socket.recv(1024)
     print (data)
     if (data == b'w'):
-        if frontRight.dutyCycle < 100 and frontLeft.dutyCycle < 100:
+        if frontRight.dutyCycle < 100 and frontLeft.dutyCycle < 100 and drive = driveMode.manual:
             frontRight.dutyCycle += 10
             frontLeft.dutyCycle += 10
             p.ChangeDutyCycle(frontRight.dutyCycle)
@@ -80,7 +66,7 @@ while True:
             print(frontLeft.dutyCycle)
 
     elif (data == b's'):
-        if frontRight.dutyCycle > 0 and frontLeft.dutyCycle > 0:
+        if frontRight.dutyCycle > 0 and frontLeft.dutyCycle > 0 and drive = driveMode.manual:
             frontRight.dutyCycle -= 10
             frontLeft.dutyCycle -= 10
             p.ChangeDutyCycle(frontRight.dutyCycle)
@@ -91,7 +77,7 @@ while True:
             print(frontLeft.dutyCycle)
         
     elif (data == b'd'):
-        if frontRight.dutyCycle > 0 and frontLeft.dutyCycle < 100:
+        if frontRight.dutyCycle > 0 and frontLeft.dutyCycle < 100 and drive = driveMode.manual:
             frontRight.dutyCycle -= 5
             frontLeft.dutyCycle += 5
             p.ChangeDutyCycle(frontRight.dutyCycle)
@@ -102,7 +88,7 @@ while True:
             print(frontLeft.dutyCycle)
 
     elif (data == b'a'):
-        if frontRight.dutyCycle < 100 and frontLeft.dutyCycle > 0:
+        if frontRight.dutyCycle < 100 and frontLeft.dutyCycle > 0 and drive = driveMode.manual:
             frontRight.dutyCycle += 5
             frontLeft.dutyCycle -= 5
             p.ChangeDutyCycle(frontRight.dutyCycle)
@@ -112,7 +98,25 @@ while True:
             print("Front left:")
             print(frontLeft.dutyCycle)
 
-    elif (data == b'self'):
+    elif (data == b'autodrive' or drive == driveMode.autonomous):
+        drive = driveMode.autonomous
+        ret, frame = cap.read()
+        cv2.imshow("webcam", frame)
+        dimensions = frame.shape
+        height = frame.shape[0]
+        width = frame.shape[1]
+        channels = frame.shape[2]
+        first_black_pixel = -1
+        last_black_pixel = -1
+        for x in range(width):
+            if frame.item(x, height / 2) == [0, 0]:
+                first_black_pixel = x
+        for x in range(width):
+            if frame.item(width - x, height / 2) == [0, 0]:
+                last_black_pixel = x
+        if first_black_pixel == -1 or last_black_pixel == -1 or first_black_pixel > last_black_pixel:
+            print("No line found")
+            return
         
 
     elif (data == b'stop'):
@@ -120,11 +124,12 @@ while True:
         frontLeft.dutyCycle = 0
         p.ChangeDutyCycle(frontRight.dutyCycle)
         r.ChangeDutyCycle(frontLeft.dutyCycle)
+        drive = driveMode.manual
         
     elif (data == b'exit'):
         GPIO.cleanup()
+        cv2.destroyAllWindows()
         break
  
 client_socket.close()
 server_socket.close()
-
