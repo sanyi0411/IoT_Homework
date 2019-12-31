@@ -60,10 +60,8 @@ while True:
             frontLeft.dutyCycle += 10
             p.ChangeDutyCycle(frontRight.dutyCycle)
             r.ChangeDutyCycle(frontLeft.dutyCycle)
-            print("Front right:")
-            print(frontRight.dutyCycle)
-            print("Front left:")
-            print(frontLeft.dutyCycle)
+            print("Front right:" + str(frontRight.dutyCycle))
+            print("Front left:" + str(frontLeft.dutyCycle))
 
     elif (data == b's'):
         if frontRight.dutyCycle > 0 and frontLeft.dutyCycle > 0 and drive = driveMode.manual:
@@ -71,10 +69,8 @@ while True:
             frontLeft.dutyCycle -= 10
             p.ChangeDutyCycle(frontRight.dutyCycle)
             r.ChangeDutyCycle(frontLeft.dutyCycle)
-            print("Front right:")
-            print(frontRight.dutyCycle)
-            print("Front left:")
-            print(frontLeft.dutyCycle)
+            print("Front right:" + str(frontRight.dutyCycle))
+            print("Front left:" + str(frontLeft.dutyCycle))
         
     elif (data == b'd'):
         if frontRight.dutyCycle > 0 and frontLeft.dutyCycle < 100 and drive = driveMode.manual:
@@ -82,10 +78,8 @@ while True:
             frontLeft.dutyCycle += 5
             p.ChangeDutyCycle(frontRight.dutyCycle)
             r.ChangeDutyCycle(frontLeft.dutyCycle)
-            print("Front right:")
-            print(frontRight.dutyCycle)
-            print("Front left:")
-            print(frontLeft.dutyCycle)
+            print("Front right:" + str(frontRight.dutyCycle))
+            print("Front left:" + str(frontLeft.dutyCycle))
 
     elif (data == b'a'):
         if frontRight.dutyCycle < 100 and frontLeft.dutyCycle > 0 and drive = driveMode.manual:
@@ -93,10 +87,8 @@ while True:
             frontLeft.dutyCycle -= 5
             p.ChangeDutyCycle(frontRight.dutyCycle)
             r.ChangeDutyCycle(frontLeft.dutyCycle)
-            print("Front right:")
-            print(frontRight.dutyCycle)
-            print("Front left:")
-            print(frontLeft.dutyCycle)
+            print("Front right:" + str(frontRight.dutyCycle))
+            print("Front left:" + str(frontLeft.dutyCycle))
 
     elif (data == b'autodrive' or drive == driveMode.autonomous):
         drive = driveMode.autonomous
@@ -117,7 +109,17 @@ while True:
         if first_black_pixel == -1 or last_black_pixel == -1 or first_black_pixel > last_black_pixel:
             print("No line found")
             return
-        
+        line_middle = (first_black_pixel + last_black_pixel) / 2
+        if line_middle < (width / 2):
+            frontLeft.dutyCycle += 1
+            r.ChangeDutyCycle(frontLeft.dutyCycle)
+            print("Front right:" + str(frontRight.dutyCycle))
+            print("Front left:" + str(frontLeft.dutyCycle))
+        if line_middle > (width / 2):
+            frontRight.dutyCycle += 1
+            p.ChangeDutyCycle(frontRight.dutyCycle)
+            print("Front right:" + str(frontRight.dutyCycle))
+            print("Front left:" + str(frontLeft.dutyCycle))
 
     elif (data == b'stop'):
         frontRight.dutyCycle = 0
