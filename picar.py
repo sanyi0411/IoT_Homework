@@ -20,13 +20,16 @@ port = 1
 server_socket.bind(("",port))
 server_socket.listen(1)
 client_socket,address = server_socket.accept()
+client_socket.setblocking(0)
 print ("Accepted connection from ",address)
+client_socket.send("Connected")
 
 #Setting up GPIO pins
 frontRight = Wheel(16, 18, 0)
 frontLeft = Wheel(13, 15, 0)
 
 GPIO.setmode(GPIO.BOARD)
+GPIO.setwarnings(False)
 GPIO.setup(frontRight.forwardPin, GPIO.OUT)
 GPIO.setup(frontRight.backwardPin, GPIO.OUT)
 GPIO.setup(frontLeft.forwardPin, GPIO.OUT)
@@ -46,13 +49,18 @@ cap = cv2.VideoCapture(0)
     
 if cap.isOpened() == False:
     print("Cannot open camera")
+else:
+    client_socket.send("Camera good")
     
 direction = Direction.forward
-drive = driveMode.manual
-
+drive = "manual"
+data = "a"
 while True:
-    data = client_socket.recv(1024)
-    print (data)
+    try:
+        data = client_socket.recv(1024)
+        print (data)
+    except:
+        pass
     
     if (data == b'exit'):
         GPIO.cleanup()
@@ -64,7 +72,8 @@ while True:
         frontLeft.dutyCycle = 0
         p.ChangeDutyCycle(frontRight.dutyCycle)
         r.ChangeDutyCycle(frontLeft.dutyCycle)
-        drive = driveMode.manual
+        cv2.destroyAllWindows()
+        drive = "manual"
     
     elif (data == b'w'):
         if frontRight.dutyCycle < 100 and frontLeft.dutyCycle < 100 and drive == driveMode.manual:
@@ -101,11 +110,12 @@ while True:
             r.ChangeDutyCycle(frontLeft.dutyCycle)
             print("Front right:" + str(frontRight.dutyCycle))
             print("Front left:" + str(frontLeft.dutyCycle))
-
-    elif (data == b'autodrive' or drive == driveMode.autonomous):
-        drive = driveMode.autonomous
+            
+    elif (data == b'autodrive' or drive == "autonomous"):
+        drive = "autonomous"
         ret, frame = cap.read()
         cv2.imshow("webcam", frame)
+        cv2.waitKey(1)
         dimensions = frame.shape
         height = frame.shape[0]
         width = frame.shape[1]
@@ -120,20 +130,20 @@ while True:
         #for x in range(width):
             #if frame.item(width - x, height / 2) == [0, 0]:
                 #last_black_pixel = x
+        line_middle = (first_black_pixel + last_black_pixel) / 2
         if first_black_pixel == -1 or last_black_pixel == -1 or first_black_pixel > last_black_pixel:
             print("No line found")
-            continue
-        line_middle = (first_black_pixel + last_black_pixel) / 2
-        if line_middle < (width / 2):
+        elif line_middle < (width / 2):
             frontLeft.dutyCycle += 1
             r.ChangeDutyCycle(frontLeft.dutyCycle)
             print("Front right:" + str(frontRight.dutyCycle))
             print("Front left:" + str(frontLeft.dutyCycle))
-        if line_middle > (width / 2):
+        elif line_middle > (width / 2):
             frontRight.dutyCycle += 1
             p.ChangeDutyCycle(frontRight.dutyCycle)
             print("Front right:" + str(frontRight.dutyCycle))
             print("Front left:" + str(frontLeft.dutyCycle))
- 
+     
+     
 client_socket.close()
 server_socket.close()
