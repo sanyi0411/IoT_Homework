@@ -65,7 +65,7 @@ cap = cv2.VideoCapture(0)
 if cap.isOpened() == False:
     print("Cannot open camera")
 else:
-    client_socket.send("Camera good")
+    client_socket.send("\nCamera good")
     
 direction = Direction.forward
 drive = "manual"
@@ -100,7 +100,7 @@ while True:
         drive = "manual"
     
     elif (data == b'w'):
-        if frontRight.dutyCycle < 100 and frontLeft.dutyCycle < 100  drive == "manual":
+        if frontRight.dutyCycle < 100 and frontLeft.dutyCycle < 100 and drive == "manual":
             frontRight.dutyCycle += 10
             frontLeft.dutyCycle += 10
             rearRight.dutyCycle += 10
@@ -108,7 +108,7 @@ while True:
         else:
             continue
         
-        if frontRight.dutyCycle >= 0 and frontLeft.dutyCycle >= 0
+        if frontRight.dutyCycle >= 0 and frontLeft.dutyCycle >= 0:
             frontRightForwPWM.ChangeDutyCycle(frontRight.dutyCycle)
             frontRightBackPWM.ChangeDutyCycle(0)
             frontLeftForwPWM.ChangeDutyCycle(frontLeft.dutyCycle)
@@ -120,7 +120,7 @@ while True:
             print("Right side:" + str(frontRight.dutyCycle))
             print("Left side:" + str(frontLeft.dutyCycle))
 
-        if frontRight.dutyCycle < 0 and frontLeft.dutyCycle < 0
+        if frontRight.dutyCycle < 0 and frontLeft.dutyCycle < 0:
             frontRightForwPWM.ChangeDutyCycle(0)
             frontRightBackPWM.ChangeDutyCycle(frontRight.dutyCycle)
             frontLeftForwPWM.ChangeDutyCycle(0)
@@ -138,10 +138,10 @@ while True:
             frontLeft.dutyCycle -= 10
             rearRight.dutyCycle -= 10
             rearLeft.dutyCycle -= 10
-         else:
+        else:
             continue
         
-        if frontRight.dutyCycle >= 0 and frontLeft.dutyCycle >= 0
+        if frontRight.dutyCycle >= 0 and frontLeft.dutyCycle >= 0:
             frontRightForwPWM.ChangeDutyCycle(frontRight.dutyCycle)
             frontRightBackPWM.ChangeDutyCycle(0)
             frontLeftForwPWM.ChangeDutyCycle(frontLeft.dutyCycle)
@@ -153,7 +153,7 @@ while True:
             print("Right side:" + str(frontRight.dutyCycle))
             print("Left side:" + str(frontLeft.dutyCycle))
 
-        if frontRight.dutyCycle < 0 and frontLeft.dutyCycle < 0
+        if frontRight.dutyCycle < 0 and frontLeft.dutyCycle < 0:
             frontRightForwPWM.ChangeDutyCycle(0)
             frontRightBackPWM.ChangeDutyCycle(frontRight.dutyCycle)
             frontLeftForwPWM.ChangeDutyCycle(0)
@@ -195,35 +195,60 @@ while True:
         drive = "autonomous"
         ret, frame = cap.read()
         #cv2.imshow("webcam", frame)
-        #cv2.waitKey(1)
+        #cv2.waitKey(16)
         #dimensions = frame.shape
         height = frame.shape[0]
         width = frame.shape[1]
-        channels = frame.shape[2]
+        #channels = frame.shape[2]
         first_black_pixel = -1
         last_black_pixel = -1
-        middlePixel = frame.item(int(width / 2), int(height / 2))
-        print(middlePixel)
-        #for x in range(width):
-            #if frame.item(x, height / 2) == [0, 0]:
-                #first_black_pixel = x
-        #for x in range(width):
-            #if frame.item(width - x, height / 2) == [0, 0]:
-                #last_black_pixel = x
+        #middleBlue = frame.item(int(width / 2), int(height / 2), 0)
+        #middleGreen = frame.item(int(width / 2), int(height / 2), 1)
+        #middleRed = frame.item(int(width / 2), int(height / 2), 2)
+        #print(middleBlue)
+        #print(middleGreen)
+        #print(middleRed)
+        frontRight.dutyCycle = 20
+        rearRight.dutyCycle = 20
+        frontLeft.dutyCycle = 20
+        rearLeft.dutyCycle = 20
+        frontRightForwPWM.ChangeDutyCycle(frontRight.dutyCycle)
+        rearRightForwPWM.ChangeDutyCycle(rearRight.dutyCycle)
+        frontLeftForwPWM.ChangeDutyCycle(frontLeft.dutyCycle)
+        rearLeftForwPWM.ChangeDutyCycle(rearLeft.dutyCycle)
+        for x in range(width - 1):
+            if frame.item(int(height / 2), x, 0) < 15 and frame.item(int(height / 2), x, 1) < 15 and frame.item(int(height / 2), x, 2) < 15:
+                first_black_pixel = x
+        for x in range(width - 1):
+            if frame.item(int(height / 2), width - 1 - x, 0) < 15 and frame.item(int(height / 2), width - 1 - x, 1) < 15 and frame.item(int(height / 2), width - 1 - x, 2) < 15:
+                last_black_pixel = width - 1 - x
         line_middle = (first_black_pixel + last_black_pixel) / 2
-        if first_black_pixel == -1 or last_black_pixel == -1 or first_black_pixel > last_black_pixel:
-            #print("No line found")
-        elif line_middle < (width / 2):
-            frontLeft.dutyCycle += 1
+        difference = int(width / 2) - line_middle
+        turnPWM = 0
+        print("width: " + str(width))
+        print("line_middle: " + str(line_middle))
+        print("difference: " + str(difference))
+        if line_middle == -1 or first_black_pixel > last_black_pixel:
+            print("No line found")
+        elif difference >= 0:
+            """We have to turn left"""
+            turnPWM = int(line_middle / (width / 2)) * 10
+            frontRightForwPWM.ChangeDutyCycle(frontRight.dutyCycle + turnPWM)
+            rearRightForwPWM.ChangeDutyCycle(rearRight.dutyCycle + turnPWM)
             frontLeftForwPWM.ChangeDutyCycle(frontLeft.dutyCycle)
-            print("Front right:" + str(frontRight.dutyCycle))
+            rearLeftForwPWM.ChangeDutyCycle(rearLeft.dutyCycle)
+            print("Front right:" + str(frontRight.dutyCycle) + str(turnPWM))
             print("Front left:" + str(frontLeft.dutyCycle))
-        elif line_middle > (width / 2):
-            frontRight.dutyCycle += 1
+        elif difference < 0:
+            """We have to turn right"""
+            turnPWM = int(abs(difference) / (width / 2)) * 10
             frontRightForwPWM.ChangeDutyCycle(frontRight.dutyCycle)
+            rearRightForwPWM.ChangeDutyCycle(rearRight.dutyCycle)
+            frontLeftForwPWM.ChangeDutyCycle(frontLeft.dutyCycle + turnPWM)
+            rearLeftForwPWM.ChangeDutyCycle(rearLeft.dutyCycle + turnPWM)
             print("Front right:" + str(frontRight.dutyCycle))
-            print("Front left:" + str(frontLeft.dutyCycle))
-     
+            print("Front left:" + str(frontLeft.dutyCycle + turnPWM))
+        time.sleep(0.2)     
      
 client_socket.close()
 server_socket.close()
