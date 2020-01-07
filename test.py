@@ -5,17 +5,32 @@ import cv2
 import enum
 import numpy as np
 
-front_right_forw = 36
-front_right_back = 32
-front_left_forw = 40
-front_left_back = 38
-
-rear_right_forw = 35
-rear_right_back = 37
-rear_left_forw = 31
-rear_left_back = 33
-
+trig = 11
+echo = 13
 GPIO.setmode(GPIO.BOARD)
+GPIO.setup(trig, GPIO.OUT)
+GPIO.setup(echo, GPIO.IN)
 
+GPIO.output(trig, 0)
 
-GPIO.cleanup()
+try:
+	while True:
+		GPIO.output(trig, 1)
+		time.sleep(0.00001)
+		GPIO.output(trig, 0)
+
+		while GPIO.input(echo) == 0:
+			pulse_start = time.time()
+
+		while GPIO.input(echo) == 1:
+			pulse_end = time.time()
+
+		pulse_duration = pulse_end - pulse_start
+		distance = pulse_duration * 17150
+		distance = round(distance + 1.15, 2)
+
+		print("Distance: " + str(distance) + "cm")
+		time.sleep(0.5)
+
+except KeyboardInterrupt:
+	GPIO.cleanup()

@@ -249,6 +249,6 @@ while True:
             print("Front right:" + str(frontRight.dutyCycle))
             print("Front left:" + str(frontLeft.dutyCycle + turnPWM))
         time.sleep(0.2)     
-     
+
 client_socket.close()
 server_socket.close()
