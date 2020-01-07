@@ -6,13 +6,32 @@ import enum
 import numpy as np
 from wheels import Wheel
 
-class Direction(enum.Enum):
-    forward = 1
-    backward = 2
-    
 class driveMode(enum.Enum):
     manual = 1
     autonomous = 2
+    
+def check_distance():
+    trig = 11
+    echo = 13
+    GPIO.setmode(GPIO.BOARD)
+    GPIO.setup(trig, GPIO.OUT)
+    GPIO.setup(echo, GPIO.IN)
+    
+    GPIO.output(trig, 1)
+    time.sleep(0.00001)
+    GPIO.output(trig, 0)
+    
+    pulse_start = 0
+    pulse_end = 0
+    
+    while GPIO.input(echo) == 0:
+        pulse_start = time.time()
+    while GPIO.input(echo) == 1:
+        pulse_end = time.time()
+
+    pulse_duration = pulse_end - pulse_start
+    distance = pulse_duration * 17150
+    return distance
 
 #Establishing bluetooth connection
 server_socket = bluetooth.BluetoothSocket(bluetooth.RFCOMM)
@@ -67,7 +86,6 @@ if cap.isOpened() == False:
 else:
     client_socket.send("\nCamera good")
     
-direction = Direction.forward
 drive = "manual"
 data = "a"
 while True:
@@ -76,7 +94,36 @@ while True:
         print (data)
     except:
         pass
+    if check_distance() <= 15 and data != b'stop':
+        frontRightForwPWM.ChangeDutyCycle(0)
+        frontRightBackPWM.ChangeDutyCycle(0)
+        frontLeftForwPWM.ChangeDutyCycle(0)
+        frontLeftBackPWM.ChangeDutyCycle(0)
+        rearRightForwPWM.ChangeDutyCycle(0)
+        rearRightBackPWM.ChangeDutyCycle(0)
+        rearLeftForwPWM.ChangeDutyCycle(0)
+        rearLeftBackPWM.ChangeDutyCycle(0)
+        client_socket.send("Too close to wall\n")
+        data = None
+        time.sleep(0.1)
+        continue
     
+    if check_distance() < 30:
+        frontRight.dutyCycle /= 2
+        rearRight.dutyCycle /= 2
+        frontLeft.dutyCycle /= 2
+        rearLeft.dutyCycle /= 2
+        frontRightForwPWM.ChangeDutyCycle(frontRight.dutyCycle)
+        frontRightBackPWM.ChangeDutyCycle(frontRight.dutyCycle)
+        frontLeftForwPWM.ChangeDutyCycle(frontLeft.dutyCycle)
+        frontLeftBackPWM.ChangeDutyCycle(frontLeft.dutyCycle)
+        rearRightForwPWM.ChangeDutyCycle(rearRight.dutyCycle)
+        rearRightBackPWM.ChangeDutyCycle(rearRight.dutyCycle)
+        rearLeftForwPWM.ChangeDutyCycle(rearLeft.dutyCycle)
+        rearLeftBackPWM.ChangeDutyCycle(rearLeft.dutyCycle)
+        client_socket.send("Getting close\n")
+        time.sleep(0.1)
+        
     if (data == b'exit'):
         GPIO.cleanup()
         cv2.destroyAllWindows()
@@ -98,6 +145,34 @@ while True:
         if drive == "autonomous":
             cv2.destroyAllWindows()
         drive = "manual"
+        
+    elif (data == b'tankl'):
+        frontRightForwPWM.ChangeDutyCycle(100)
+        frontLeftBackPWM.ChangeDutyCycle(100)
+        rearRightForwPWM.ChangeDutyCycle(100)
+        rearLeftBackPWM.ChangeDutyCycle(100)
+        ts = time.time()
+        et = time.time() - ts
+        while et < 1:
+            et = time.time() - ts
+        frontRightForwPWM.ChangeDutyCycle(0)
+        frontLeftBackPWM.ChangeDutyCycle(0)
+        rearRightForwPWM.ChangeDutyCycle(0)
+        rearLeftBackPWM.ChangeDutyCycle(0)
+        
+    elif (data == b'tankr'):
+        frontLeftForwPWM.ChangeDutyCycle(100)
+        frontRightBackPWM.ChangeDutyCycle(100)
+        rearLeftForwPWM.ChangeDutyCycle(100)
+        rearRightBackPWM.ChangeDutyCycle(100)
+        ts = time.time()
+        et = time.time() - ts
+        while et < 1:
+            et = time.time() - ts
+        frontRightForwPWM.ChangeDutyCycle(0)
+        frontLeftBackPWM.ChangeDutyCycle(0)
+        rearRightForwPWM.ChangeDutyCycle(0)
+        rearLeftBackPWM.ChangeDutyCycle(0)
     
     elif (data == b'w'):
         if frontRight.dutyCycle < 100 and frontLeft.dutyCycle < 100 and drive == "manual":
@@ -155,13 +230,13 @@ while True:
 
         if frontRight.dutyCycle < 0 and frontLeft.dutyCycle < 0:
             frontRightForwPWM.ChangeDutyCycle(0)
-            frontRightBackPWM.ChangeDutyCycle(frontRight.dutyCycle)
+            frontRightBackPWM.ChangeDutyCycle(abs(frontRight.dutyCycle))
             frontLeftForwPWM.ChangeDutyCycle(0)
-            frontLeftBackPWM.ChangeDutyCycle(frontLeft.dutyCycle)
+            frontLeftBackPWM.ChangeDutyCycle(abs(frontLeft.dutyCycle))
             rearRightForwPWM.ChangeDutyCycle(0)
-            rearRightBackPWM.ChangeDutyCycle(rearRight.dutyCycle)
+            rearRightBackPWM.ChangeDutyCycle(abs(rearRight.dutyCycle))
             rearLeftForwPWM.ChangeDutyCycle(0)
-            rearLeftBackPWM.ChangeDutyCycle(rearLeft.dutyCycle)
+            rearLeftBackPWM.ChangeDutyCycle(abs(rearLeft.dutyCycle))
             print("Right side:" + str(frontRight.dutyCycle))
             print("Left side:" + str(frontLeft.dutyCycle))
         
@@ -194,28 +269,14 @@ while True:
     elif (data == b'autodrive' or drive == "autonomous"):
         drive = "autonomous"
         ret, frame = cap.read()
-        #cv2.imshow("webcam", frame)
-        #cv2.waitKey(16)
-        #dimensions = frame.shape
         height = frame.shape[0]
         width = frame.shape[1]
-        #channels = frame.shape[2]
         first_black_pixel = -1
         last_black_pixel = -1
-        #middleBlue = frame.item(int(width / 2), int(height / 2), 0)
-        #middleGreen = frame.item(int(width / 2), int(height / 2), 1)
-        #middleRed = frame.item(int(width / 2), int(height / 2), 2)
-        #print(middleBlue)
-        #print(middleGreen)
-        #print(middleRed)
         frontRight.dutyCycle = 20
         rearRight.dutyCycle = 20
         frontLeft.dutyCycle = 20
         rearLeft.dutyCycle = 20
-        frontRightForwPWM.ChangeDutyCycle(frontRight.dutyCycle)
-        rearRightForwPWM.ChangeDutyCycle(rearRight.dutyCycle)
-        frontLeftForwPWM.ChangeDutyCycle(frontLeft.dutyCycle)
-        rearLeftForwPWM.ChangeDutyCycle(rearLeft.dutyCycle)
         for x in range(width - 1):
             if frame.item(int(height / 2), x, 0) < 15 and frame.item(int(height / 2), x, 1) < 15 and frame.item(int(height / 2), x, 2) < 15:
                 first_black_pixel = x
@@ -228,11 +289,15 @@ while True:
         print("width: " + str(width))
         print("line_middle: " + str(line_middle))
         print("difference: " + str(difference))
-        if line_middle == -1 or first_black_pixel > last_black_pixel:
-            print("No line found")
+        if line_middle == -1:
+            client_socket.send("No line found\n")
+            frontRightForwPWM.ChangeDutyCycle(0)
+            rearRightForwPWM.ChangeDutyCycle(0)
+            frontLeftForwPWM.ChangeDutyCycle(0)
+            rearLeftForwPWM.ChangeDutyCycle(0)
         elif difference >= 0:
             """We have to turn left"""
-            turnPWM = int(line_middle / (width / 2)) * 10
+            turnPWM = int(difference / (width / 2)) * 10
             frontRightForwPWM.ChangeDutyCycle(frontRight.dutyCycle + turnPWM)
             rearRightForwPWM.ChangeDutyCycle(rearRight.dutyCycle + turnPWM)
             frontLeftForwPWM.ChangeDutyCycle(frontLeft.dutyCycle)
@@ -248,7 +313,9 @@ while True:
             rearLeftForwPWM.ChangeDutyCycle(rearLeft.dutyCycle + turnPWM)
             print("Front right:" + str(frontRight.dutyCycle))
             print("Front left:" + str(frontLeft.dutyCycle + turnPWM))
-        time.sleep(0.2)     
+        time.sleep(0.2)
+        
+    data = None
 
 client_socket.close()
 server_socket.close()
