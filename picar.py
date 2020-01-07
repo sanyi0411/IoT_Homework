@@ -108,7 +108,7 @@ while True:
         else:
             continue
         
-        if frontRight.dutyCycle >= 0 and frontLeft.dutyCycle >= 0
+        if frontRight.dutyCycle >= 0 and frontLeft.dutyCycle >= 0:
             frontRightForwPWM.ChangeDutyCycle(frontRight.dutyCycle)
             frontRightBackPWM.ChangeDutyCycle(0)
             frontLeftForwPWM.ChangeDutyCycle(frontLeft.dutyCycle)
@@ -120,7 +120,7 @@ while True:
             print("Right side:" + str(frontRight.dutyCycle))
             print("Left side:" + str(frontLeft.dutyCycle))
 
-        if frontRight.dutyCycle < 0 and frontLeft.dutyCycle < 0
+        if frontRight.dutyCycle < 0 and frontLeft.dutyCycle < 0:
             frontRightForwPWM.ChangeDutyCycle(0)
             frontRightBackPWM.ChangeDutyCycle(frontRight.dutyCycle)
             frontLeftForwPWM.ChangeDutyCycle(0)
@@ -138,10 +138,10 @@ while True:
             frontLeft.dutyCycle -= 10
             rearRight.dutyCycle -= 10
             rearLeft.dutyCycle -= 10
-         else:
+        else:
             continue
         
-        if frontRight.dutyCycle >= 0 and frontLeft.dutyCycle >= 0
+        if frontRight.dutyCycle >= 0 and frontLeft.dutyCycle >= 0:
             frontRightForwPWM.ChangeDutyCycle(frontRight.dutyCycle)
             frontRightBackPWM.ChangeDutyCycle(0)
             frontLeftForwPWM.ChangeDutyCycle(frontLeft.dutyCycle)
@@ -153,7 +153,7 @@ while True:
             print("Right side:" + str(frontRight.dutyCycle))
             print("Left side:" + str(frontLeft.dutyCycle))
 
-        if frontRight.dutyCycle < 0 and frontLeft.dutyCycle < 0
+        if frontRight.dutyCycle < 0 and frontLeft.dutyCycle < 0:
             frontRightForwPWM.ChangeDutyCycle(0)
             frontRightBackPWM.ChangeDutyCycle(frontRight.dutyCycle)
             frontLeftForwPWM.ChangeDutyCycle(0)
@@ -223,7 +223,6 @@ while True:
             frontRightForwPWM.ChangeDutyCycle(frontRight.dutyCycle)
             print("Front right:" + str(frontRight.dutyCycle))
             print("Front left:" + str(frontLeft.dutyCycle))
-     
-     
+
 client_socket.close()
 server_socket.close()
